@@ -24,7 +24,7 @@ Begin by downloading the latest release.  Extract the contents of the archive in
 - `%programdata%\Nuix\Scripts` - System level script directory
 
 ## Usage
-See included [Help]() file for details on how to use this script.
+See included [Help](https://github.com/NuixSDK/Custom-Exporter/blob/master/Ruby/CustomExporter.nuixscript/Help.md) file for details on how to use this script.
 
 # License
 

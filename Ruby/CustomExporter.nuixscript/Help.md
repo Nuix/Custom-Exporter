@@ -62,9 +62,7 @@ Allows you to configure whether the placeholder `{docid}` is enabled and what pr
 
 This series of combo boxes allow you to configure what custom metadata fields will be used when resolving the [Custom Metadata Placeholders](#custom-metadata-placeholders).
 
-```:alert-info
 **Note:** These will only show up if the current case contains at least once custom metadata field.
-```
 
 ### User Placeholder Configuration
 
@@ -76,9 +74,7 @@ Allows you to specify mime types to be filtered from the placeholder [Relational
 
 - **Modify 'Path Name' in DAT if Present**: When checked and the selected metadata profile contains the field `Path Name`, the `Path Name` field in the final DAT will be updated to reflect the selected filtering.
 
-```:alert-warn
 **Note:** This field is only calculated if the placeholder `{filtered_item_path}` is used or if **Modify 'Path Name' in DAT if Present** is checked.  Calculating filtered path name may incur additional processing time!
-```
 
 ## Worker Settings Tab
 
@@ -100,9 +96,7 @@ These placeholders are useful if you have defined a common set of settings but h
 - `{user_4}`
 - `{user_5}`
 
-```:alert-info
 **Tip**: These values may contain `\`.
-```
 
 ## Custom Metadata Placeholders
 
@@ -116,17 +110,13 @@ These placeholders are useful in generating export pathing and naming based on v
 - `{custom_4}`
 - `{custom_5}`
 
-```:alert-info
 **Tip**: These values may contain `\`.
-```
 
 ## General Placeholders
 
 These placeholders are evaluated after [User Placeholders](#user-placeholders) and [Custom Metadata Placeholders](#custom-metadata-placeholders).  These placeholders mostly represent data about a given item.
 
-```:alert-info
 **Note:** Since some of these values may contain characters which are illegal file path characters the following characters are replaced with underscores: `<>:"|?*[]`
-```
 
 - `{box}`: This will be replaced with a sequential number which is incremented every `step` items.  `step` being a number you specify in the settings (default is `1000`).  The starting number, `0` pad width and `step` can be defined in the [Placeholders Tab](#palceholders-tab).  **Note:** When the number exceeds the specified width it restarts at `0`!  For example, a width of `4` will roll over to `0` after `9999`.  This placeholder is intended to be used in conjunction with `{box_major}`.
 - `{box_major}`: This number increments whenever `{box}` rolls over to `0`.  So for example, if the current item number is `23579` and `{box}` is configured to a width of `4`, `{box_major}` will be `2` (zero padded based on settings) and `{box}` will be `3579`.  Unlike the `{box}` placeholder, if this value exceeds the specified width it does not roll over to `0`.  Therefore it is possible for this number to exceed the width specified if the value contains more digits than the specified width.
@@ -153,11 +143,9 @@ These placeholders are evaluated after [User Placeholders](#user-placeholders) a
 
 These placeholders depend on relationships with other items.  These placeholders can be useful to organize exported items based on some relationship, such as grouping items in a directory based on their top level item.
 
-```:alert-info
 **Note:** When the noted relationship cannot be resolved, the given item will be used instead.
 
 An example of this would be when attempting to resolve the top level item's value for a given item, but the item is above top level.  In this instance the item's value will be used since there is no top level item to resolve against. 
-```
 
 - `{top_level_guid}`: Replaced with the GUID of the item's top level item.
 - `{top_level_sub_guid}`: Similar to `{sub_guid}` in [General Placeholders](#general-placeholders), this will be replaced with the first three characters of the top level item's GUID.

@@ -106,18 +106,16 @@ code[class*=language-],pre[class*=language-]{color:#f8f8f2;text-shadow:0 1px rgb
 <p>Allows you to configure whether the placeholder <code>{docid}</code> is enabled and what production set will be used when resolving document ID values.  These options are only available when the current case contains at least one production set.</p>
 <a name="custom-metadata-placeholder-configuration"></a><h3 class="page-header">Custom Metadata Placeholder Configuration</h3>
 <p>This series of combo boxes allow you to configure what custom metadata fields will be used when resolving the <a href="#custom-metadata-placeholders">Custom Metadata Placeholders</a>.</p>
-<div class="alert alert-info" role="alert"><p><strong>Note:</strong> These will only show up if the current case contains at least once custom metadata field.</p>
-
-</div><a name="user-placeholder-configuration"></a><h3 class="page-header">User Placeholder Configuration</h3>
+<p><strong>Note:</strong> These will only show up if the current case contains at least once custom metadata field.</p>
+<a name="user-placeholder-configuration"></a><h3 class="page-header">User Placeholder Configuration</h3>
 <p>Allows you to define <a href="#user-placeholders">User Placeholders</a>, which are values of your choosing.  May contain most of the other placeholders.</p>
 <a name="filtered-path-name-tab"></a><h2 class="page-header">Filtered Path Name Tab</h2>
 <p>Allows you to specify mime types to be filtered from the placeholder <a href="#relational-placeholders">Relational Placeholder {filtered_item_path}</a> or optionally the <code>Path Name</code> field in the final DAT file.  Check the mime types of items for which you don't want names included.</p>
 <ul>
 <li><strong>Modify 'Path Name' in DAT if Present</strong>: When checked and the selected metadata profile contains the field <code>Path Name</code>, the <code>Path Name</code> field in the final DAT will be updated to reflect the selected filtering.</li>
 </ul>
-<div class="alert alert-warn" role="alert"><p><strong>Note:</strong> This field is only calculated if the placeholder <code>{filtered_item_path}</code> is used or if <strong>Modify 'Path Name' in DAT if Present</strong> is checked.  Calculating filtered path name may incur additional processing time!</p>
-
-</div><a name="worker-settings-tab"></a><h2 class="page-header">Worker Settings Tab</h2>
+<p><strong>Note:</strong> This field is only calculated if the placeholder <code>{filtered_item_path}</code> is used or if <strong>Modify 'Path Name' in DAT if Present</strong> is checked.  Calculating filtered path name may incur additional processing time!</p>
+<a name="worker-settings-tab"></a><h2 class="page-header">Worker Settings Tab</h2>
 <p>Allows you to configure worker setttings used by the initial export.</p>
 <a name="placeholders"></a><h1 class="page-header">Placeholders</h1>
 <p>Placeholders allow you define dynamic pathing and naming based on placeholder values which will be replaced at runtime.  The most basic of which is the placeholder <code>{export_directory}</code> which will be replaced with the export directory value specified in the <a href="#main-tab">Main Tab</a> of the <a href="#settings-dialog">Settings Dialog</a>.</p>
@@ -131,9 +129,8 @@ code[class*=language-],pre[class*=language-]{color:#f8f8f2;text-shadow:0 1px rgb
 <li><code>{user_4}</code></li>
 <li><code>{user_5}</code></li>
 </ul>
-<div class="alert alert-info" role="alert"><p><strong>Tip</strong>: These values may contain <code>\</code>.</p>
-
-</div><a name="custom-metadata-placeholders"></a><h2 class="page-header">Custom Metadata Placeholders</h2>
+<p><strong>Tip</strong>: These values may contain <code>\</code>.</p>
+<a name="custom-metadata-placeholders"></a><h2 class="page-header">Custom Metadata Placeholders</h2>
 <p>These 5 placeholders allow you to select custom metadata fields to be replaced when running the script.  The value of these placeholders are specified in the <a href="#palceholders-tab">Placeholders Tab</a>.  These placeholders are evaluated second and the custom metadata values they point to may contain any of the other placeholders except the <a href="#user-placeholders">User Placeholders</a>.</p>
 <p>These placeholders are useful in generating export pathing and naming based on values recorded in custom metadata fields.</p>
 <ul>
@@ -143,13 +140,10 @@ code[class*=language-],pre[class*=language-]{color:#f8f8f2;text-shadow:0 1px rgb
 <li><code>{custom_4}</code></li>
 <li><code>{custom_5}</code></li>
 </ul>
-<div class="alert alert-info" role="alert"><p><strong>Tip</strong>: These values may contain <code>\</code>.</p>
-
-</div><a name="general-placeholders"></a><h2 class="page-header">General Placeholders</h2>
+<p><strong>Tip</strong>: These values may contain <code>\</code>.</p>
+<a name="general-placeholders"></a><h2 class="page-header">General Placeholders</h2>
 <p>These placeholders are evaluated after <a href="#user-placeholders">User Placeholders</a> and <a href="#custom-metadata-placeholders">Custom Metadata Placeholders</a>.  These placeholders mostly represent data about a given item.</p>
-<div class="alert alert-info" role="alert"><p><strong>Note:</strong> Since some of these values may contain characters which are illegal file path characters the following characters are replaced with underscores: <code>&lt;&gt;:&quot;|?*[]</code></p>
-
-</div>
+<p><strong>Note:</strong> Since some of these values may contain characters which are illegal file path characters the following characters are replaced with underscores: <code>&lt;&gt;:&quot;|?*[]</code></p>
 <ul>
 <li><code>{box}</code>: This will be replaced with a sequential number which is incremented every <code>step</code> items.  <code>step</code> being a number you specify in the settings (default is <code>1000</code>).  The starting number, <code>0</code> pad width and <code>step</code> can be defined in the <a href="#palceholders-tab">Placeholders Tab</a>.  <strong>Note:</strong> When the number exceeds the specified width it restarts at <code>0</code>!  For example, a width of <code>4</code> will roll over to <code>0</code> after <code>9999</code>.  This placeholder is intended to be used in conjunction with <code>{box_major}</code>.</li>
 <li><code>{box_major}</code>: This number increments whenever <code>{box}</code> rolls over to <code>0</code>.  So for example, if the current item number is <code>23579</code> and <code>{box}</code> is configured to a width of <code>4</code>, <code>{box_major}</code> will be <code>2</code> (zero padded based on settings) and <code>{box}</code> will be <code>3579</code>.  Unlike the <code>{box}</code> placeholder, if this value exceeds the specified width it does not roll over to <code>0</code>.  Therefore it is possible for this number to exceed the width specified if the value contains more digits than the specified width.</li>
@@ -174,10 +168,8 @@ code[class*=language-],pre[class*=language-]{color:#f8f8f2;text-shadow:0 1px rgb
 </ul>
 <a name="relational-placeholders"></a><h2 class="page-header">Relational Placeholders</h2>
 <p>These placeholders depend on relationships with other items.  These placeholders can be useful to organize exported items based on some relationship, such as grouping items in a directory based on their top level item.</p>
-<div class="alert alert-info" role="alert"><p><strong>Note:</strong> When the noted relationship cannot be resolved, the given item will be used instead.</p>
+<p><strong>Note:</strong> When the noted relationship cannot be resolved, the given item will be used instead.</p>
 <p>An example of this would be when attempting to resolve the top level item's value for a given item, but the item is above top level.  In this instance the item's value will be used since there is no top level item to resolve against.</p>
-
-</div>
 <ul>
 <li><code>{top_level_guid}</code>: Replaced with the GUID of the item's top level item.</li>
 <li><code>{top_level_sub_guid}</code>: Similar to <code>{sub_guid}</code> in <a href="#general-placeholders">General Placeholders</a>, this will be replaced with the first three characters of the top level item's GUID.</li>

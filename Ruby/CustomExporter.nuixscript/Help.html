@@ -68,6 +68,8 @@ code[class*=language-],pre[class*=language-]{color:#f8f8f2;text-shadow:0 1px rgb
 <a name="main-tab"></a><h2 class="page-header">Main Tab</h2>
 <ul>
 <li><strong>Export Directory</strong>: Specifies where temporary export will be performed.  Also determines the value of the <a href="#placeholders">Placeholder</a> <code>{export_directory}</code>.</li>
+<li><strong>Export Metadata As CSV</strong>: When checked metadata loadfile with be exported as CSV in addtion to DAT (which is always exported).</li>
+<li><strong>Export Metadata As XLSX</strong>: When checked metadata loadfile with be exported as Excel XLSX in addtion to DAT (which is always exported).</li>
 <li><strong>Metadata Profile</strong>: Determines the metadata profile used in the resulting DAT loadfile.  Must contain the field <code>GUID</code> which is used to correlate DAT entries back to actual items in the case.  Due to this only metadata profiles which contain the field <code>GUID</code> are present in the list.</li>
 <li><strong>Use Query</strong>: Items exported will be based on a query you provide.</li>
 <li><strong>Item Query</strong>: The query to use when <strong>Use Query</strong> is checked.</li>

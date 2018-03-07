@@ -16,6 +16,8 @@ When the settings dialog is displayed it will be populated with settings from th
 ## Main Tab
 
 - **Export Directory**: Specifies where temporary export will be performed.  Also determines the value of the [Placeholder](#placeholders) `{export_directory}`.
+- **Export Metadata As CSV**: When checked metadata loadfile with be exported as CSV in addtion to DAT (which is always exported).
+- **Export Metadata As XLSX**: When checked metadata loadfile with be exported as Excel XLSX in addtion to DAT (which is always exported).
 - **Metadata Profile**: Determines the metadata profile used in the resulting DAT loadfile.  Must contain the field `GUID` which is used to correlate DAT entries back to actual items in the case.  Due to this only metadata profiles which contain the field `GUID` are present in the list.
 - **Use Query**: Items exported will be based on a query you provide.
 - **Item Query**: The query to use when **Use Query** is checked.

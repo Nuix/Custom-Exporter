@@ -22,6 +22,12 @@ NuixConnection.setCurrentNuixVersion(NUIX_VERSION)
 # Load class for working with DAT file
 load File.join(script_directory,"DAT.rb_")
 
+# Load class for exporting XLSX
+load File.join(script_directory,"Xlsx.rb")
+
+# Require CSV library
+require 'csv'
+
 # Get a listing of metadata profiles that contain at least the field GUID a
 # (requirement for the script to make use of them), make sure we end up
 # with at least one for the user to select from
@@ -49,6 +55,9 @@ dialog.setHelpFile(File.join(script_directory,"Help.html"))
 # Main Tab
 main_tab = dialog.addTab("main_tab","Main")
 main_tab.appendDirectoryChooser("export_directory","Export Directory")
+main_tab.appendCheckBox("export_csv","Export Metadata As CSV",false)
+main_tab.appendCheckBox("export_xlsx","Export Metadata As XLSX",false)
+main_tab.appendLabel("loadfile_note","Note: You will always get a DAT file exported.")
 main_tab.appendHeader("Note: Only profiles containing 'GUID' are listed.")
 main_tab.appendComboBox("metadata_profile","Metadata Profile",profile_names)
 
@@ -345,6 +354,9 @@ if dialog.getDialogResult == true
 		user_value_4 = values["user_value_4"]
 		user_value_5 = values["user_value_5"]
 		enable_docid = values["enable_docid"]
+
+		export_csv = values["export_csv"]
+		export_xlsx = values["export_xlsx"]
 		
 		docid_prod_set = nil
 		if enable_docid
@@ -489,6 +501,23 @@ if dialog.getDialogResult == true
 
 		# Used to periodically report progress updates
 		last_progress = Time.now
+
+		# Initialize other loadfile export stuff if needed
+		csv_file = File.join(export_directory,"loadfile.csv")
+		xlsx_file = File.join(export_directory,"loadfile.xlsx")
+
+		xlsx = nil
+		sheet = nil
+		csv = nil
+
+		if export_csv
+			csv = CSV.open(csv_file,"w:utf-8")
+		end
+
+		if export_xlsx
+			xlsx = Xlsx.new(xlsx_file)
+			sheet = xlsx.get_sheet("Load File")
+		end
 
 		# Restructuring process is driven by this transpose process.  What happens is that DAT.transpose_each
 		# will read the initial temporary exported DAT line by line, yielding to the block a hash for each record
@@ -655,6 +684,36 @@ if dialog.getDialogResult == true
 			if export_tiff
 				restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags)
 			end
+
+			# Handle additional loadfile: CSV
+			if export_csv
+				# If were on first record, write headers first
+				if record_number == 1
+					csv << record.keys
+				end
+				# Write record values
+				csv << record.values
+			end
+
+			if export_xlsx
+				# If were on first record, write headers first
+				if record_number == 1
+					sheet << record.keys
+				end
+				# Write record values
+				sheet << record.values
+			end
+		end
+
+		# If we're exporting additional load file formats (CSV/XLSX) we need to close them out
+		if export_csv
+			csv.close
+		end
+
+		if export_xlsx
+			sheet.auto_fit_columns
+			xlsx.save(xlsx_file)
+			xlsx.dispose
 		end
 
 		# Cleanup what remains of the initial temporary export location.  Shouldn't be much as we should have moved

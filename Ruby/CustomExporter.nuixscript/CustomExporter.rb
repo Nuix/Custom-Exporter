@@ -579,7 +579,7 @@ if dialog.getDialogResult == true
 			# General placeholders
 			resolver.set("box",box)
 			resolver.set("box_major",box_major)
-			current_item_localised_name = current_item.getLocalisedName.gsub(/[\\\/\.\n\r\t]/,"_")
+			current_item_localised_name = current_item.getLocalisedName.gsub(/[\\\/\n\r\t]/,"_")
 			if current_item_localised_name =~ /\./
 				resolver.set("name",File.basename(current_item_localised_name,File.extname(current_item_localised_name)))
 			else

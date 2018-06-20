@@ -116,7 +116,7 @@ tiff_tab.enabledOnlyWhenChecked("tiff_dpi","export_tiff")
 native_tab = dialog.addTab("native_tab","Natives")
 native_tab.appendCheckBox("export_natives","Export Natives",true)
 native_tab.appendTextField("natives_template","Natives Path Template","{export_directory}\\NATIVE\\{box}\\{name}.{extension}")
-native_tab.appendComboBox("natives_email_format","Email Format",["msg","eml","html"])
+native_tab.appendComboBox("natives_email_format","Email Format",["msg","eml","html","mime_html","dxl"])
 native_tab.appendCheckBox("include_attachments","Include Attachments on Emails",true)
 native_tab.enabledOnlyWhenChecked("natives_template","export_natives")
 native_tab.enabledOnlyWhenChecked("natives_email_format","export_natives")
@@ -596,7 +596,11 @@ if dialog.getDialogResult == true
 			# Resolve extension placeholder
 			extension = "BIN"
 			if current_item.getKind.getName == "email"
-				extension = natives_email_format
+				if natives_email_format == "mime_html"
+					extension = "mht"
+				else
+					extension = natives_email_format
+				end
 			else
 				extension = current_item.getCorrectedExtension
 				extension ||= current_item.getOriginalExtension

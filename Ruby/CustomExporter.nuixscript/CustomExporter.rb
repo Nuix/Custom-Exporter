@@ -20,7 +20,10 @@ NuixConnection.setUtilities($utilities)
 NuixConnection.setCurrentNuixVersion(NUIX_VERSION)
 
 # Load class for working with DAT file
-load File.join(script_directory,"DAT.rb_")
+load File.join(script_directory,"DAT.rb")
+
+# Load class for working with OPT file
+load File.join(script_directory,"OPT.rb")
 
 # Load class for exporting XLSX
 load File.join(script_directory,"Xlsx.rb")
@@ -186,6 +189,7 @@ filtered_path_tab.appendChoiceTable("filtered_path_mime_types","Mime Types",type
 # Worker Settings Tab
 worker_tab = dialog.addTab("worker_tab","Worker Settings")
 worker_tab.appendLocalWorkerSettings("worker_settings")
+worker_tab.appendCheckBox("delete_temp_directory","Delete Temp Directory on Completion",true)
 
 # Provide a callback to the settings dialog which will validate settings when the user
 # clicks the ok button.  If this callback yields false, settings dialog will not close
@@ -236,7 +240,8 @@ end
 
 # Method used later on to move an export product file to appropriate structure
 # based on template user provided
-def restructure_product(record,product_path_field,product_name,resolver,current_item,template,temp_export_directory,export_directory,placeholder_tags)
+def restructure_product(record,product_path_field,product_name,resolver,current_item,template,temp_export_directory,export_directory,placeholder_tags,pd)
+	xref = {}
 	original_path = record[product_path_field]
 	original_fullpath = File.join(temp_export_directory,original_path).gsub(/\//,"\\")
 
@@ -251,6 +256,11 @@ def restructure_product(record,product_path_field,product_name,resolver,current_
 			tag_path = tag.gsub(/\|/,"\\")
 			resolver.set("tags",tag_path)
 			updated_fullpath = resolver.resolveTemplatePath(template)
+			copy = 1
+			while java.io.File.new(updated_fullpath).exists
+				updated_fullpath = resolver.resolveTemplatePath(template).gsub(/(\.[^\.]+)/,"_#{copy}\\1")
+				copy += 1
+			end
 			updated_path = updated_fullpath.gsub(/^#{Regexp.escape(export_directory)}\\/i,".\\")
 			pathing_data << {
 				:updated_fullpath => updated_fullpath,
@@ -264,6 +274,9 @@ def restructure_product(record,product_path_field,product_name,resolver,current_
 		pathing_data.each_with_index do |path_entry,path_entry_index|
 			updated_fullpath = path_entry[:updated_fullpath]
 			updated_path = path_entry[:updated_path]
+
+			xref[original_path] = updated_path
+
 			java.io.File.new(updated_fullpath).getParentFile.mkdirs
 			begin
 				puts "Renaming #{original_fullpath} to #{updated_fullpath}"
@@ -283,6 +296,10 @@ def restructure_product(record,product_path_field,product_name,resolver,current_
 			record[product_path_field] = pathing_data.map{|path_entry| path_entry[:updated_path]}.join("; ")
 		end
 	end
+	# if product_name == "TIFF"
+	# 	puts xref.inspect
+	# end
+	return xref
 end
 
 # Display dialog
@@ -357,6 +374,8 @@ if dialog.getDialogResult == true
 
 		export_csv = values["export_csv"]
 		export_xlsx = values["export_xlsx"]
+
+		delete_temp_directory = values["delete_temp_directory"]
 		
 		docid_prod_set = nil
 		if enable_docid
@@ -486,6 +505,8 @@ if dialog.getDialogResult == true
 		# product paths updated to match
 		exported_temp_dat = File.join(temp_export_directory,"loadfile.dat")
 		final_dat = File.join(export_directory,"loadfile.dat")
+		exported_temp_opt = File.join(temp_export_directory,"loadfile.opt")
+		final_opt = File.join(export_directory,"loadfile.opt")
 		resolver = PlaceholderResolver.new
 		record_number = 0
 
@@ -518,6 +539,8 @@ if dialog.getDialogResult == true
 			xlsx = Xlsx.new(xlsx_file)
 			sheet = xlsx.get_sheet("Load File")
 		end
+
+		tiff_xref = {}
 
 		# Restructuring process is driven by this transpose process.  What happens is that DAT.transpose_each
 		# will read the initial temporary exported DAT line by line, yielding to the block a hash for each record
@@ -671,22 +694,23 @@ if dialog.getDialogResult == true
 
 			# Process text
 			if export_text
-				restructure_product(record,"TEXTPATH","Text",resolver,current_item,text_template,temp_export_directory,export_directory,placeholder_tags)
+				restructure_product(record,"TEXTPATH","Text",resolver,current_item,text_template,temp_export_directory,export_directory,placeholder_tags,pd)
 			end
 
 			# Process natives
 			if export_natives
-				restructure_product(record,"ITEMPATH","Native",resolver,current_item,natives_template,temp_export_directory,export_directory,placeholder_tags)
+				restructure_product(record,"ITEMPATH","Native",resolver,current_item,natives_template,temp_export_directory,export_directory,placeholder_tags,pd)
 			end
 
 			# Process PDFs
 			if export_pdf
-				restructure_product(record,"PDFPATH","PDF",resolver,current_item,pdf_template,temp_export_directory,export_directory,placeholder_tags)
+				restructure_product(record,"PDFPATH","PDF",resolver,current_item,pdf_template,temp_export_directory,export_directory,placeholder_tags,pd)
 			end
 
 			# Process TIFFs
 			if export_tiff
-				restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags)
+				xref = restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags,pd)
+				tiff_xref.merge!(xref)
 			end
 
 			# Handle additional loadfile: CSV
@@ -709,6 +733,14 @@ if dialog.getDialogResult == true
 			end
 		end
 
+		# Fix up OPT if we're exporting TIFFs
+		if export_tiff
+			# puts tiff_xref.inspect
+			OPT.transpose_each(exported_temp_opt,final_opt) do |opt_record|
+				opt_record.path = tiff_xref[opt_record.path].gsub(/^\.\\/,"")
+			end
+		end
+
 		# If we're exporting additional load file formats (CSV/XLSX) we need to close them out
 		if export_csv
 			csv.close
@@ -720,10 +752,14 @@ if dialog.getDialogResult == true
 			xlsx.dispose
 		end
 
-		# Cleanup what remains of the initial temporary export location.  Shouldn't be much as we should have moved
-		# everything into the new structure.
-		pd.setMainStatusAndLogIt("Deleting temporary export directory...")
-		org.apache.commons.io.FileUtils.deleteDirectory(java.io.File.new(temp_export_directory))
+		if delete_temp_directory
+			# Cleanup what remains of the initial temporary export location.  Shouldn't be much as we should have moved
+			# everything into the new structure.
+			pd.setMainStatusAndLogIt("Deleting temporary export directory...")
+			org.apache.commons.io.FileUtils.deleteDirectory(java.io.File.new(temp_export_directory))
+		else
+			pd.setMainStatusAndLogIt("Not deleting temporary export directory, as per settings.")
+		end
 
 		# Put the progress dialog into a completed state
 		pd.setCompleted

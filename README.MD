@@ -2,7 +2,7 @@
 Custom Exporter
 =============
 
-![Last tested in Nuix 7.4](https://img.shields.io/badge/Nuix-7.4-green.svg)
+![This script was last tested in Nuix 7.4](https://img.shields.io/badge/Script%20Tested%20in%20Nuix-7.4-green.svg)
 
 View the GitHub project [here](https://github.com/Nuix/Custom-Exporter) or download the latest release [here](https://github.com/Nuix/Custom-Exporter/releases).
 

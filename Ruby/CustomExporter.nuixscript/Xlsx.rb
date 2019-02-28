@@ -5,11 +5,13 @@ if !Object.const_defined?("NuixVersion")
 
 		attr_accessor :major
 		attr_accessor :minor
+		attr_accessor :bugfix
 		attr_accessor :build
 
-		def initialize(major,minor=0,build=0)
+		def initialize(major,minor=0,bugfix=0,build=0)
 			@major = major
 			@minor = minor
+			@bugfix = bugfix
 			@build = build
 		end
 
@@ -24,7 +26,7 @@ if !Object.const_defined?("NuixVersion")
 		end
 
 		def to_s
-		  return [@major,@minor,@build].join(".")
+		  return [@major,@minor,@bugfix,@build].join(".")
 		end
 
 		def <=>(other)
@@ -35,7 +37,7 @@ if !Object.const_defined?("NuixVersion")
 				other = NuixVersion.parse(other.to_s)
 			end
 
-			return [@major,@minor,@build] <=> [other.major,other.minor,other.build]
+			return [@major,@minor,@bugfix,@build] <=> [other.major,other.minor,other.bugfix,other.build]
 		end
 	end
 end
@@ -73,13 +75,10 @@ class Xlsx
 	def initialize(file=nil)
 		#Ensure the Aspose licence is initialized
 		if NuixVersion.current < 7
-			# Package before Nuix 7.0
 			com.nuix.util.AsposeCells.ensureInitialised
 		elsif NuixVersion.current < 7.4
-			# Package before Nuix 7.4
 			com.nuix.util.aspose.AsposeCells.ensureInitialised
 		else
-			# Package Nuix in Nuix 7.4
 			com.nuix.data.util.aspose.AsposeCells.ensureInitialised
 		end
 		@file = file
@@ -148,7 +147,33 @@ class Xlsx
 			when :background_color
 				aspose_style.setForegroundColor(resolve_color(value))
 				aspose_style.setPattern(com.aspose.cells.BackgroundType::SOLID)
+			when :border_top
+				if value.to_s.strip.empty? == false
+					border = aspose_style.getBorders().getByBorderType(AsposeCells::BorderType::TOP_BORDER)
+					border.setLineStyle(resolve_line_style(value))
+					border.setColor(AsposeCells::Color.getBlack)
+				end
+			when :border_bottom
+				if value.to_s.strip.empty? == false
+					border = aspose_style.getBorders().getByBorderType(AsposeCells::BorderType::BOTTOM_BORDER)
+					border.setLineStyle(resolve_line_style(value))
+					border.setColor(AsposeCells::Color.getBlack)
+				end
 			end
+		end
+	end
+
+	def resolve_line_style(line_style)
+		# http://www.aspose.com/api/java/cells/com.aspose.cells/constants/CellBorderType
+		case line_style
+		when :none
+			return AsposeCells::CellBorderType::NONE
+		when :thin
+			return AsposeCells::CellBorderType::THIN
+		when :medium
+			return AsposeCells::CellBorderType::MEDIUM
+		else
+			raise "Invalid border line style: #{line_style}"
 		end
 	end
 
@@ -279,21 +304,6 @@ class Xlsx
 
 		def auto_fit_rows
 			@aspose_worksheet.autoFitRows
-		end
-
-		def set_landscape
-			page_setup = @aspose_worksheet.getPageSetup
-			page_setup.setOrientation(AsposeCells::PageOrientationType::LANDSCAPE)
-		end
-
-		def set_portrait
-			page_setup = @aspose_worksheet.getPageSetup
-			page_setup.setOrientation(AsposeCells::PageOrientationType::PORTRAIT)
-		end
-
-		def set_print_gridlines(value)
-			page_setup = @aspose_worksheet.getPageSetup
-			page_setup.setPrintGridlines(value)
 		end
 
 		private

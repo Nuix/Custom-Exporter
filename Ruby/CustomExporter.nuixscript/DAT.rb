@@ -20,10 +20,22 @@ class DAT
 		end
 	end
 
+	def self.when_modify_headers(&block)
+		@@header_modifier_block = block
+	end
+
+	def self.modify_headers(headers)
+		if @@header_modifier_block.nil?
+			return headers
+		else
+			return @@header_modifier_block.call(headers)
+		end
+	end
+
 	# Allows a block to generate a new DAT from an existing DAT
 	# This is accomplished by yielding each record from input DAT as hash to block, block is
 	# then free to make use of and modify contents of the hash.  After a given execution of the
-	# blcok complete this will then generate a DAT record with the contents of the now modified
+	# block completes this will then generate a DAT record with the contents of the now modified
 	# record hash and write that out to the destination DAT.
 	def self.transpose_each(input_file_path,output_file_path,additional_headers=[],&block)
 		if output_file_path == input_file_path
@@ -33,7 +45,9 @@ class DAT
 			File.open(input_file_path,"r:utf-8") do |file|
 				headers_line = file.gets
 				headers = parse_line(headers_line) + additional_headers
-				output_file.puts(generate_line(headers))
+				output_headers = modify_headers(headers)
+				headers_dat_line = generate_line(output_headers)
+				output_file.puts(headers_dat_line)
 				while line = file.gets
 					values = parse_line(line)
 					record = {}

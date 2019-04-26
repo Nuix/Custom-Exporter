@@ -80,6 +80,25 @@ main_tab.appendTextArea("source_query","","")
 main_tab.enabledOnlyWhenChecked("source_query","use_query")
 main_tab.enabledOnlyWhenChecked("include_families","use_query")
 
+built_in_headers = [
+	"DOCID",
+	"PARENT_DOCID",
+	"ATTACH_DOCID",
+	"BEGINBATES",
+	"ENDBATES",
+	"BEGINGROUP",
+	"ENDGROUP",
+	"PAGECOUNT",
+	"ITEMPATH",
+	"TEXTPATH",
+	"PDFPATH",
+	"TIFFPATH",
+]
+headers_tab = dialog.addTab("headers_tab","Nuix DAT Headers")
+built_in_headers.each do |built_in_header|
+	headers_tab.appendTextField("rename_#{built_in_header.downcase}","Rename '#{built_in_header}' to",built_in_header)
+end
+
 # Text Settings Tab
 text_tab = dialog.addTab("text_tab","Text")
 text_tab.appendCheckBox("export_text","Export Text",true)
@@ -296,9 +315,7 @@ def restructure_product(record,product_path_field,product_name,resolver,current_
 			record[product_path_field] = pathing_data.map{|path_entry| path_entry[:updated_path]}.join("; ")
 		end
 	end
-	# if product_name == "TIFF"
-	# 	puts xref.inspect
-	# end
+	
 	return xref
 end
 
@@ -335,6 +352,11 @@ if dialog.getDialogResult == true
 		if values["include_families"]
 			pd.logMessage("Including family items...")
 			items = iutil.findFamilies(items)
+		end
+
+		header_renames = {}
+		built_in_headers.each do |built_in_header|
+			header_renames[built_in_header] = values["rename_#{built_in_header.downcase}"]
 		end
 
 		pd.logMessage("Removing any excluded items...")
@@ -542,6 +564,20 @@ if dialog.getDialogResult == true
 
 		tiff_xref = {}
 
+		# Specify header renames
+		DAT.when_modify_headers do |headers|
+			modified_headers = []
+			headers.each do |header|
+				new_header = header_renames[header]
+				if new_header.nil?
+					modified_headers << header
+				else
+					modified_headers << new_header
+				end
+			end
+			next modified_headers
+		end
+
 		# Restructuring process is driven by this transpose process.  What happens is that DAT.transpose_each
 		# will read the initial temporary exported DAT line by line, yielding to the block a hash for each record
 		# where the key is the column name and the value is the value for that given record.  The path values are
@@ -717,7 +753,7 @@ if dialog.getDialogResult == true
 			if export_csv
 				# If were on first record, write headers first
 				if record_number == 1
-					csv << record.keys
+					csv << DAT.modify_headers(record.keys)
 				end
 				# Write record values
 				csv << record.values
@@ -726,7 +762,7 @@ if dialog.getDialogResult == true
 			if export_xlsx
 				# If were on first record, write headers first
 				if record_number == 1
-					sheet << record.keys
+					sheet << DAT.modify_headers(record.keys)
 				end
 				# Write record values
 				sheet << record.values

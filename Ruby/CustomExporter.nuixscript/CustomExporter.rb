@@ -693,7 +693,14 @@ if dialog.getDialogResult == true
 			# If we are exporting from a production set we can let the user make use of doc_id as we will
 			# have data available to resolve this
 			if enable_docid
-				resolver.set("docid",docid_lookup[current_item])
+				docid_to_use = docid_lookup[current_item]
+				if docid_to_use.nil? || docid_to_use.strip.empty?
+					resolver.set("docid",current_item.getGuid)
+				else
+					resolver.set("docid",docid_to_use)
+				end
+			else
+				resolver.set("docid",current_item.getGuid)
 			end
 
 			# Placeholder which are based on top level item (or current item if above top level)

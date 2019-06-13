@@ -54,6 +54,7 @@ production_set_names = $current_case.getProductionSets.map{|ps|ps.getName}
 dialog = TabbedCustomDialog.new("Custom Exporter")
 dialog.enableStickySettings(File.join(script_directory,"RecentSettings.json"))
 dialog.setHelpFile(File.join(script_directory,"Help.html"))
+dialog.setHelpUrl("https://github.com/Nuix/Custom-Exporter")
 
 # Main Tab
 main_tab = dialog.addTab("main_tab","Main")

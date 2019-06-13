@@ -856,6 +856,16 @@ if dialog.getDialogResult == true
 				path = tiff_xref[opt_record.path]
 				if !path.nil?
 					opt_record.path = path.gsub(/^\.\\/,"")
+
+					# When exporting a production set, the OPT produced by Nuix during the temp export
+					# phase will contain DOCIDs for ID in each OPT record.  When not exporting from a production
+					# set we get vague IDs like: 001.001.002
+					# Here we add logic to instead use the resolved image's file name as the OPT ID.
+					if !values["use_production_set"]
+						ext = File.extname(path)
+						name = File.basename(path, ext)
+						opt_record.id = name
+					end
 				end
 			end
 		end

@@ -54,6 +54,7 @@ production_set_names = $current_case.getProductionSets.map{|ps|ps.getName}
 dialog = TabbedCustomDialog.new("Custom Exporter")
 dialog.enableStickySettings(File.join(script_directory,"RecentSettings.json"))
 dialog.setHelpFile(File.join(script_directory,"Help.html"))
+dialog.setHelpUrl("https://github.com/Nuix/Custom-Exporter")
 
 # Main Tab
 main_tab = dialog.addTab("main_tab","Main")
@@ -114,6 +115,8 @@ pdf_tab.enabledOnlyWhenChecked("pdf_template","export_pdf")
 # TIFF settings Tab
 tiff_tab = dialog.addTab("tiff_tab","TIFF")
 tiff_tab.appendCheckBox("export_tiff","Export TIFFs",true)
+tiff_tab.appendRadioButton("multi_page_tiff","Multi-page","tiff_type_group",true)
+tiff_tab.appendRadioButton("single_page_tiff","Single-page","tiff_type_group",false)
 tiff_tab.appendTextField("tiff_template","TIFF Path Template","{export_directory}\\TIFF\\{box_major}\\{box}\\{name}.tiff")
 dpi_choices = [
 	#"75", # Is this still supported actually?  Gave me an error
@@ -233,9 +236,22 @@ dialog.validateBeforeClosing do |values|
 		CommonDialogs.showError("PDF Path Template cannot be empty.")
 		next false
 	end
-	if values["export_tiff"] && (values["tiff_template"].nil? || values["tiff_template"].strip.empty?)
-		CommonDialogs.showError("TIFF Path Template cannot be empty.")
-		next false
+	if values["export_tiff"] 
+		if (values["tiff_template"].nil? || values["tiff_template"].strip.empty?)
+			CommonDialogs.showError("TIFF Path Template cannot be empty.")
+			next false
+		end
+
+		multi_page_tiff = values["multi_page_tiff"] == true
+		if !multi_page_tiff && values["tiff_template"] !~ /\{page\}/ && values["tiff_template"] !~ /\{page_4\}/
+			message = "You have specified export of single page TIFFs, but have not provided a page\n"
+			message += "format placeholder in your TIFF pathing template.  Please include either of\n"
+			message += "the following placeholders in your TIFF path template:\n"
+			message += "{page} - Page number without zero fill\n"
+			message += "{page_4} - Page number zero filled 4 characters wide"
+			CommonDialogs.showError(message,"No Page Placeholder in TIFF Path Template")
+			next false
+		end
 	end
 
 	# Validate worker temp
@@ -319,6 +335,27 @@ def restructure_product(record,product_path_field,product_name,resolver,current_
 	return xref
 end
 
+def find_additional_pages(temp_export_directory,first_page_file)
+	result = []
+	first_page_file = first_page_file.gsub(/^\.\\/,"")
+	dir = File.dirname(first_page_file)
+	ext = File.extname(first_page_file)
+	name = File.basename(first_page_file, ext)
+	index = 1
+	while true
+		maybe_exists = File.join(temp_export_directory,dir,"#{name}_#{index}#{ext}")
+		puts "Checking for existence of: #{maybe_exists}"
+		if java.io.File.new(maybe_exists).exists
+			result << File.join(dir,"#{name}_#{index}#{ext}").gsub(/\//,"\\")
+			index += 1
+			puts "Found additional page image: #{maybe_exists}"
+		else
+			break
+		end
+	end
+	return result
+end
+
 # Display dialog
 dialog.display
 if dialog.getDialogResult == true
@@ -378,6 +415,7 @@ if dialog.getDialogResult == true
 		pdf_template = values["pdf_template"]
 		export_tiff = values["export_tiff"]
 		tiff_template = values["tiff_template"]
+		multi_page_tiff = values["multi_page_tiff"] == true
 
 		export_directory = values["export_directory"]
 		temp_export_directory = File.join(export_directory,"TEMP")
@@ -484,7 +522,7 @@ if dialog.getDialogResult == true
 			tiff_settings = {
 				:naming => "guid",
 				:path => "TIFF",
-				:multiPageTiff => true,
+				:multiPageTiff => multi_page_tiff,
 				:tiffDpi => values["tiff_dpi"].to_i,
 				:tiffFormat => values["tiff_format"].gsub(" ","_")
 			}
@@ -713,6 +751,12 @@ if dialog.getDialogResult == true
 			top_level_item_path.pop
 			resolver.set("top_level_item_path",top_level_item_path.map{|i|i.getLocalisedName.gsub(/[\\\/\.\n\r\t]/,"_")}.join("\\"))
 
+			# These will be replaced with blank values unless we are exporting single page
+			# images (TIFF/JPG).  When exporting single page images, will be updated per page
+			# as each page is being restructured.
+			resolver.set("page","")
+			resolver.set("page_4","")
+
 			filtered_path_names = []
 			# Only calculate path names if we really need to since it could cause a performance hit
 			if generate_filtered_path || (use_custom_placeholders && (resolver.get("custom_1") =~ fp_regex || resolver.get("custom_2") =~ fp_regex ||
@@ -752,8 +796,38 @@ if dialog.getDialogResult == true
 
 			# Process TIFFs
 			if export_tiff
-				xref = restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags,pd)
-				tiff_xref.merge!(xref)
+				if multi_page_tiff
+					xref = restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags,pd)
+					tiff_xref.merge!(xref)
+				else
+					base_tiff_path = record["TIFFPATH"]
+					page = 1
+
+					# Set page placeholders
+					resolver.set("page","#{page}")
+					resolver.set("page_4",page.to_s.rjust(4,"0"))
+
+					xref = restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags,pd)
+					tiff_xref.merge!(xref)
+
+					find_additional_pages(temp_export_directory,base_tiff_path).each do |additional_page_file|
+						page += 1
+
+						# Set page placeholders
+						resolver.set("page","#{page}")
+						resolver.set("page_4",page.to_s.rjust(4,"0"))
+
+						# restructure_product method was built to handle restructuring item level files, not
+						# individual pages of an item.  Part of this expectation is that it gets the current item's
+						# DAT record as a hash.  To allow for restructuring of individual pages, we provide the item
+						# level record, but stuff the TIFFPATH field with the individual page image's file path each
+						# time we restructure a page level image.
+						record["TIFFPATH"] = additional_page_file
+
+						xref = restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags,pd)
+						tiff_xref.merge!(xref)
+					end
+				end
 			end
 
 			# Handle additional loadfile: CSV
@@ -778,9 +852,22 @@ if dialog.getDialogResult == true
 
 		# Fix up OPT if we're exporting TIFFs
 		if export_tiff
-			# puts tiff_xref.inspect
+			puts tiff_xref.inspect
 			OPT.transpose_each(exported_temp_opt,final_opt) do |opt_record|
-				opt_record.path = tiff_xref[opt_record.path].gsub(/^\.\\/,"")
+				path = tiff_xref[opt_record.path]
+				if !path.nil?
+					opt_record.path = path.gsub(/^\.\\/,"")
+
+					# When exporting a production set, the OPT produced by Nuix during the temp export
+					# phase will contain DOCIDs for ID in each OPT record.  When not exporting from a production
+					# set we get vague IDs like: 001.001.002
+					# Here we add logic to instead use the resolved image's file name as the OPT ID.
+					if !values["use_production_set"]
+						ext = File.extname(path)
+						name = File.basename(path, ext)
+						opt_record.id = name
+					end
+				end
 			end
 		end
 

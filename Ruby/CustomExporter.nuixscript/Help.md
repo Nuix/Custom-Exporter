@@ -26,6 +26,10 @@ When the settings dialog is displayed it will be populated with settings from th
 - **Use Production Set**: Uses items present in a given production set.  Note that DOCID values in final DAT file will only have meaningful values when this is checked.  Only available when the current case contains at least one production set.
 - **Production Set**: The production set to export when **Use Production Set** is checked.
 
+## Nuix DAT Headers
+
+This tab has settings allowing you to specify new header names for some of the DAT columns which Nuix automatically includes during export.
+
 ## Text Tab
 
 - **Export Text**: When checked, text files for items will be exported.
@@ -46,7 +50,10 @@ When the settings dialog is displayed it will be populated with settings from th
 ## TIFF Tab
 
 - **Export TIFFs**: When checked, multi-page TIFF files for items will be exported.
+- **Multi-page**/**Single-page**: Whether exported images will be single page or multipage.
 - **TIFF Path Template**: Determines the path and file name of exported TIFF files.  See [Placeholders](#placeholders) for more information.
+- **TIFF DPI**: DPI resolution of exported images.
+- **TIFF Format**: Image format of exported TIFF images.
 
 ## Placeholders Tab
 
@@ -140,6 +147,8 @@ These placeholders are evaluated after [User Placeholders](#user-placeholders) a
 - `{item_path}`: Replaced with a series of directories based on item path names (ex: `Bob_pst\Sent Items\FW_ Some Email`).
 - `{filtered_item_path}`: Replaced with a series of directories based on item path names (ex: `Bob_pst\Sent Items\FW_ Some Email`).  Names for items which are of one of the mime types specified in the [Filtered Path Name Tab](#filtered-path-name-tab) will be filtered out from this value.
 - `{tags}`: This placeholder will yield the name of each tag applied to the given item.  The tag structure will be turned into directories, for example the tag `Classification|Status|Reviewed` will yield the following in the path `Classification\Status\Reviewed`.  An important feature of this placeholder is that it can yield multiple copies of the same exported product if the item has more than one tag!  Restrict the tags considered for this placeholder by de-selecting them on the `{tags} Placeholder` tab.  If using the `{tags}` placeholder for a template yields multiple copies of a given file, multiple entries will be written in the final DAT file, delimited with `; ` (semicolon space).  If an item has no tags or none of the tags which are checked on the `{tags} Placeholder` tab, this placeholder will yield `No Tags`.
+- `{page}`: Replaced with page number (no zero padding).  Only relevant for TIFF pathing template when exporting single page TIFFs.  In all other instances will be replaced with a blank value.  Examples: `DOC0001_1`, `DOC0001_2`, `DOC0001_3`, etc
+- `{page_4}`: Replaced with page number zero padded 4 characters wide.  Only relevant for TIFF pathing template when exporting single page TIFFs.  In all other instances will be replaced with a blank value.  Examples: `DOC0001_0001`, `DOC0001_0002`, `DOC0001_0003`, etc
 
 ## Relational Placeholders
 

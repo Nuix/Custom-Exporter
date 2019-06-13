@@ -114,6 +114,8 @@ pdf_tab.enabledOnlyWhenChecked("pdf_template","export_pdf")
 # TIFF settings Tab
 tiff_tab = dialog.addTab("tiff_tab","TIFF")
 tiff_tab.appendCheckBox("export_tiff","Export TIFFs",true)
+tiff_tab.appendRadioButton("multi_page_tiff","Multi-page","tiff_type_group",true)
+tiff_tab.appendRadioButton("single_page_tiff","Single-page","tiff_type_group",false)
 tiff_tab.appendTextField("tiff_template","TIFF Path Template","{export_directory}\\TIFF\\{box_major}\\{box}\\{name}.tiff")
 dpi_choices = [
 	#"75", # Is this still supported actually?  Gave me an error
@@ -319,6 +321,27 @@ def restructure_product(record,product_path_field,product_name,resolver,current_
 	return xref
 end
 
+def find_additional_pages(temp_export_directory,first_page_file)
+	result = []
+	first_page_file = first_page_file.gsub(/^\.\\/,"")
+	dir = File.dirname(first_page_file)
+	ext = File.extname(first_page_file)
+	name = File.basename(first_page_file, ext)
+	index = 1
+	while true
+		maybe_exists = File.join(temp_export_directory,dir,"#{name}_#{index}#{ext}")
+		puts "Checking for existence of: #{maybe_exists}"
+		if java.io.File.new(maybe_exists).exists
+			result << File.join(dir,"#{name}_#{index}#{ext}").gsub(/\//,"\\")
+			index += 1
+			puts "Found additional page image: #{maybe_exists}"
+		else
+			break
+		end
+	end
+	return result
+end
+
 # Display dialog
 dialog.display
 if dialog.getDialogResult == true
@@ -378,6 +401,7 @@ if dialog.getDialogResult == true
 		pdf_template = values["pdf_template"]
 		export_tiff = values["export_tiff"]
 		tiff_template = values["tiff_template"]
+		multi_page_tiff = values["multi_page_tiff"] == true
 
 		export_directory = values["export_directory"]
 		temp_export_directory = File.join(export_directory,"TEMP")
@@ -484,7 +508,7 @@ if dialog.getDialogResult == true
 			tiff_settings = {
 				:naming => "guid",
 				:path => "TIFF",
-				:multiPageTiff => true,
+				:multiPageTiff => multi_page_tiff,
 				:tiffDpi => values["tiff_dpi"].to_i,
 				:tiffFormat => values["tiff_format"].gsub(" ","_")
 			}
@@ -752,8 +776,28 @@ if dialog.getDialogResult == true
 
 			# Process TIFFs
 			if export_tiff
-				xref = restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags,pd)
-				tiff_xref.merge!(xref)
+				if multi_page_tiff
+					resolver.set("page","")
+					resolver.set("page_4","")
+					xref = restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags,pd)
+					tiff_xref.merge!(xref)
+				else
+					base_tiff_path = record["TIFFPATH"]
+					page = 1
+					resolver.set("page","#{page}")
+					resolver.set("page_4",page.to_s.rjust(4,"0"))
+					xref = restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags,pd)
+					tiff_xref.merge!(xref)
+
+					find_additional_pages(temp_export_directory,base_tiff_path).each do |additional_page_file|
+						page += 1
+						resolver.set("page","#{page}")
+						resolver.set("page_4",page.to_s.rjust(4,"0"))
+						record["TIFFPATH"] = additional_page_file
+						xref = restructure_product(record,"TIFFPATH","TIFF",resolver,current_item,tiff_template,temp_export_directory,export_directory,placeholder_tags,pd)
+						tiff_xref.merge!(xref)
+					end
+				end
 			end
 
 			# Handle additional loadfile: CSV
@@ -778,9 +822,12 @@ if dialog.getDialogResult == true
 
 		# Fix up OPT if we're exporting TIFFs
 		if export_tiff
-			# puts tiff_xref.inspect
+			puts tiff_xref.inspect
 			OPT.transpose_each(exported_temp_opt,final_opt) do |opt_record|
-				opt_record.path = tiff_xref[opt_record.path].gsub(/^\.\\/,"")
+				path = tiff_xref[opt_record.path]
+				if !path.nil?
+					opt_record.path = path.gsub(/^\.\\/,"")
+				end
 			end
 		end
 

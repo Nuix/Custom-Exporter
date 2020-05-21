@@ -674,11 +674,11 @@ if dialog.getDialogResult == true
 			# Placeholders which are based on custom metadata
 			if use_custom_placeholders
 				cm = current_item.getCustomMetadata
-				cmv1 = coalesce(cm[custom_field_1])
-				cmv2 = coalesce(cm[custom_field_2])
-				cmv3 = coalesce(cm[custom_field_3])
-				cmv4 = coalesce(cm[custom_field_4])
-				cmv5 = coalesce(cm[custom_field_5])
+				cmv1 = coalesce("#{cm[custom_field_1]}")
+				cmv2 = coalesce("#{cm[custom_field_2]}")
+				cmv3 = coalesce("#{cm[custom_field_3]}")
+				cmv4 = coalesce("#{cm[custom_field_4]}")
+				cmv5 = coalesce("#{cm[custom_field_5]}")
 				resolver.setPath("custom_1",cmv1)
 				resolver.setPath("custom_2",cmv2)
 				resolver.setPath("custom_3",cmv3)

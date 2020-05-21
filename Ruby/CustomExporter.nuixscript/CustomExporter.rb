@@ -665,7 +665,7 @@ if dialog.getDialogResult == true
 
 			# Placeholders which are based on custom metadata
 			if use_custom_placeholders
-				item_custom_metadata = item.getCustomMetadata
+				item_custom_metadata = current_item.getCustomMetadata
 				resolver.setPath("custom_1",item_custom_metadata[custom_field_1] || "")
 				resolver.setPath("custom_2",item_custom_metadata[custom_field_2] || "")
 				resolver.setPath("custom_3",item_custom_metadata[custom_field_3] || "")

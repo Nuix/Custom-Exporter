@@ -356,6 +356,14 @@ def find_additional_pages(temp_export_directory,first_page_file)
 	return result
 end
 
+def coalesce(input,fallback="NO_VALUE")
+	if input.nil? || input.strip.empty?
+		return fallback
+	else
+		return input
+	end
+end
+
 # Display dialog
 dialog.display
 if dialog.getDialogResult == true
@@ -666,11 +674,16 @@ if dialog.getDialogResult == true
 			# Placeholders which are based on custom metadata
 			if use_custom_placeholders
 				cm = current_item.getCustomMetadata
-				resolver.setPath("custom_1","#{cm[custom_field_1]}")
-				resolver.setPath("custom_2","#{cm[custom_field_2]}")
-				resolver.setPath("custom_3","#{cm[custom_field_3]}")
-				resolver.setPath("custom_4","#{cm[custom_field_4]}")
-				resolver.setPath("custom_5","#{cm[custom_field_5]}")
+				cmv1 = coalesce(cm[custom_field_1])
+				cmv2 = coalesce(cm[custom_field_2])
+				cmv3 = coalesce(cm[custom_field_3])
+				cmv4 = coalesce(cm[custom_field_4])
+				cmv5 = coalesce(cm[custom_field_5])
+				resolver.setPath("custom_1",cmv1)
+				resolver.setPath("custom_2",cmv2)
+				resolver.setPath("custom_3",cmv3)
+				resolver.setPath("custom_4",cmv4)
+				resolver.setPath("custom_5",cmv5)
 			end
 
 			# General placeholders

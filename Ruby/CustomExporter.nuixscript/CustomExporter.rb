@@ -665,12 +665,12 @@ if dialog.getDialogResult == true
 
 			# Placeholders which are based on custom metadata
 			if use_custom_placeholders
-				item_custom_metadata = current_item.getCustomMetadata
-				resolver.setPath("custom_1",item_custom_metadata[custom_field_1] || "")
-				resolver.setPath("custom_2",item_custom_metadata[custom_field_2] || "")
-				resolver.setPath("custom_3",item_custom_metadata[custom_field_3] || "")
-				resolver.setPath("custom_4",item_custom_metadata[custom_field_4] || "")
-				resolver.setPath("custom_5",item_custom_metadata[custom_field_5] || "")
+				cm = current_item.getCustomMetadata
+				resolver.setPath("custom_1","#{cm[custom_field_1]}")
+				resolver.setPath("custom_2","#{cm[custom_field_2]}")
+				resolver.setPath("custom_3","#{cm[custom_field_3]}")
+				resolver.setPath("custom_4","#{cm[custom_field_4]}")
+				resolver.setPath("custom_5","#{cm[custom_field_5]}")
 			end
 
 			# General placeholders

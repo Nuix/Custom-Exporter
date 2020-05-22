@@ -674,11 +674,23 @@ if dialog.getDialogResult == true
 			# Placeholders which are based on custom metadata
 			if use_custom_placeholders
 				cm = current_item.getCustomMetadata
+				# Coalesce will make sure nil or empty values get a value
+				# of "NO_VALUE" since an empty value could break path strings
 				cmv1 = coalesce("#{cm[custom_field_1]}")
 				cmv2 = coalesce("#{cm[custom_field_2]}")
 				cmv3 = coalesce("#{cm[custom_field_3]}")
 				cmv4 = coalesce("#{cm[custom_field_4]}")
 				cmv5 = coalesce("#{cm[custom_field_5]}")
+
+				# Furthermore, we need to remove illegal path characters from these
+				# values while still allowing path separators to get through in case
+				# someone is using the field to specify varying pathing
+				cmv1 = PlaceholderResolver.cleanPathString(cmv1)
+				cmv2 = PlaceholderResolver.cleanPathString(cmv2)
+				cmv3 = PlaceholderResolver.cleanPathString(cmv3)
+				cmv4 = PlaceholderResolver.cleanPathString(cmv4)
+				cmv5 = PlaceholderResolver.cleanPathString(cmv5)
+
 				resolver.setPath("custom_1",cmv1)
 				resolver.setPath("custom_2",cmv2)
 				resolver.setPath("custom_3",cmv3)

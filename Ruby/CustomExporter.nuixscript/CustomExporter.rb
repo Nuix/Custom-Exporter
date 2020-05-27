@@ -31,6 +31,8 @@ load File.join(script_directory,"Xlsx.rb")
 # Require CSV library
 require 'csv'
 
+java_import org.apache.commons.io.FilenameUtils
+
 # Get a listing of metadata profiles that contain at least the field GUID a
 # (requirement for the script to make use of them), make sure we end up
 # with at least one for the user to select from
@@ -291,12 +293,8 @@ def restructure_product(record,product_path_field,product_name,resolver,current_
 			tag_path = tag.gsub(/\|/,"\\")
 			resolver.set("tags",tag_path)
 			updated_fullpath = resolver.resolveTemplatePath(template)
-			copy = 1
-			while java.io.File.new(updated_fullpath).exists
-				updated_fullpath = resolver.resolveTemplatePath(template).gsub(/(\.[^\.]+)/,"_#{copy}\\1")
-				copy += 1
-			end
 			updated_path = updated_fullpath.gsub(/^#{Regexp.escape(export_directory)}\\/i,".\\")
+
 			pathing_data << {
 				:updated_fullpath => updated_fullpath,
 				:updated_path => updated_path
@@ -304,6 +302,53 @@ def restructure_product(record,product_path_field,product_name,resolver,current_
 		end
 
 		pathing_data.uniq!
+
+		# Handle things like:
+		# - Too long file path
+		# - Suffix when name collides with file already on disk
+		pathing_data.each do |path_entry|
+			updated_fullpath = path_entry[:updated_fullpath]
+			updated_path = path_entry[:updated_path]
+
+			# We need to handle path too long here since FileUtils.copyFile doesn't seem to be
+			# throwing exceptions for this
+			was_truncated = false
+			original_updated_fullpath = updated_fullpath
+			if updated_fullpath.size >= 260
+				pd.logMessage("Resolved path equals/exceeds 260 characters and will be truncated for item with GUID #{current_item.getGuid}")
+				resolved_file_name = java.io.File.new(updated_fullpath).getName
+				updated_fullpath = File.join(export_directory,"PATH_TOO_LONG",resolved_file_name)
+				was_truncated = true
+			end
+
+			copy = 1
+			temp_fullpath = updated_fullpath
+			while java.io.File.new(temp_fullpath).exists
+				extension = FilenameUtils.getExtension(updated_fullpath)
+				file_base_name = FilenameUtils.getBaseName(updated_fullpath)
+				directory = java.io.File.new(updated_fullpath).getParentFile.getAbsolutePath
+				temp_fullpath = File.join(directory,"#{file_base_name}_#{copy}.#{extension}")
+				copy += 1
+			end
+			updated_fullpath = temp_fullpath
+
+			updated_fullpath = updated_fullpath.gsub("/","\\")
+			updated_path = updated_fullpath.gsub(/^#{Regexp.escape(export_directory)}\\/i,".\\")
+
+			if was_truncated
+				File.open(File.join(export_directory,"PATH_TOO_LONG.TXT"),"a:utf-8") do |path_log|
+					path_log.puts("="*20)
+					path_log.puts("GUID: #{current_item.getGuid}")
+					path_log.puts("Product: #{product_name}")
+					path_log.puts("Resolved path of #{original_updated_fullpath.size} characters equals/exceeds 260 character limit")
+					path_log.puts(" Resolved Path: #{original_updated_fullpath}")
+					path_log.puts("Truncated Path: #{updated_fullpath}")
+				end
+			end
+
+			path_entry[:updated_fullpath] = updated_fullpath
+			path_entry[:updated_path] = updated_path
+		end
 		
 		had_error = false
 		pathing_data.each_with_index do |path_entry,path_entry_index|

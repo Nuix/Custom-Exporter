@@ -37,7 +37,7 @@ Once you have a copy of Nx.jar, make sure to include it in the same directory as
 # License
 
 ```
-Copyright 2018 Nuix
+Copyright 2020 Nuix
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

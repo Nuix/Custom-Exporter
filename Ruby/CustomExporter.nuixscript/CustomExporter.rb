@@ -151,6 +151,8 @@ native_tab.enabledOnlyWhenChecked("natives_email_format","export_natives")
 # Placeholder settings tab
 placeholders_tab = dialog.addTab("placeholders_tab","Placeholders")
 
+placeholders_tab.appendSpinner("max_item_path_segment_length","Maximum {item_path} segment length",0,0,10000000,1)
+
 placeholders_tab.appendSeparator("Box Minor Settings")
 placeholders_tab.appendSpinner("box_start","{box} starting number",0,0,99999999)
 placeholders_tab.appendSpinner("box_width","{box} zero fill width",4,1,8)
@@ -307,8 +309,8 @@ def restructure_product(record,product_path_field,product_name,resolver,current_
 		# - Too long file path
 		# - Suffix when name collides with file already on disk
 		pathing_data.each do |path_entry|
-			updated_fullpath = path_entry[:updated_fullpath]
-			updated_path = path_entry[:updated_path]
+			updated_fullpath = path_entry[:updated_fullpath] # Absolute path
+			updated_path = path_entry[:updated_path] # Relative path for loadfile
 
 			# We need to handle path too long here since FileUtils.copyFile doesn't seem to be
 			# throwing exceptions for this
@@ -472,6 +474,7 @@ if dialog.getDialogResult == true
 
 		export_directory = values["export_directory"]
 		temp_export_directory = File.join(export_directory,"TEMP")
+		max_item_path_segment_length = values["max_item_path_segment_length"]
 		use_custom_placeholders = values["use_custom_placeholders"]
 		custom_field_1 = values["custom_field_1"]
 		custom_field_2 = values["custom_field_2"]
@@ -794,9 +797,30 @@ if dialog.getDialogResult == true
 			end
 
 			# Resolve an item path value that is able to be used in file system path
-			current_item_path = current_item.getPath.to_a
+			current_item_path = current_item.getLocalisedPathNames.to_a
 			current_item_path.pop
-			resolver.set("item_path",current_item_path.map{|i|i.getLocalisedName.gsub(/[\\\/\.\n\r\t]/,"_")}.join("\\"))
+			current_item_path = current_item_path.map do |localised_path_name|
+				# Replace some characters with underscores
+				segment = localised_path_name.gsub(/[\\\/\.\n\r\t]+/,"_")
+
+				# If user specified max segment length, enforce that here
+				if max_item_path_segment_length > 0 && segment.size > max_item_path_segment_length
+					segment = segment[0..max_item_path_segment_length-1]
+				end
+
+				# Its possible for leading or trailing whitespace characters at this
+				# point which wont work so we need to strip them off
+				segment = segment.strip
+
+				# Finally, there is a small chance the somehow we have a segment of length 0
+				# so we will just make sure something gets through for this segment
+				if segment.size == 0
+					segment = "_"
+				end
+
+				next segment
+			end
+			resolver.set("item_path",current_item_path.join("\\"))
 
 			# If we are exporting from a production set we can let the user make use of doc_id as we will
 			# have data available to resolve this

@@ -63,6 +63,8 @@ main_tab = dialog.addTab("main_tab","Main")
 main_tab.appendDirectoryChooser("export_directory","Export Directory")
 main_tab.appendCheckBox("export_csv","Export Metadata As CSV",false)
 main_tab.appendCheckBox("export_xlsx","Export Metadata As XLSX",false)
+main_tab.appendCheckBox("hyperlink_to_products","Hyperlink to Products in XLSX",false)
+main_tab.enabledOnlyWhenChecked("hyperlink_to_products","export_xlsx")
 main_tab.appendLabel("loadfile_note","Note: You will always get a DAT file exported.")
 main_tab.appendHeader("Note: Only profiles containing 'GUID' are listed.")
 main_tab.appendComboBox("metadata_profile","Metadata Profile",profile_names)
@@ -490,6 +492,7 @@ if dialog.getDialogResult == true
 
 		export_csv = values["export_csv"]
 		export_xlsx = values["export_xlsx"]
+		hyperlink_to_products = values["hyperlink_to_products"]
 
 		delete_temp_directory = values["delete_temp_directory"]
 		
@@ -934,13 +937,39 @@ if dialog.getDialogResult == true
 				csv << record.values
 			end
 
+			# Define the columns which we will hyperlink if they
+			# user has selected to hyperlink to product files in
+			# while producing and XLSX
+			hyperlinked_columns = {
+				"ITEMPATH" => true,
+				"TEXTPATH" => true,
+				"PDFPATH" => true,
+				"TIFFPATH" => true,
+			}
+
 			if export_xlsx
 				# If were on first record, write headers first
 				if record_number == 1
 					sheet << DAT.modify_headers(record.keys)
 				end
 				# Write record values
-				sheet << record.values
+				if hyperlink_to_products
+					# If we are hyperlinking then we want to take values of
+					# fields which point to exported product files (text,pdf,tiff,native)
+					# and wrap the relative path to the given file in an excel formula
+					# =HYPERLINK("relative_file_path","display_value")
+					hyperlinked_values = []
+					record.each do |header,value|
+						if hyperlinked_columns[header] == true
+							hyperlinked_values << "=HYPERLINK(\"#{value}\",\"#{value}\")"
+						else
+							hyperlinked_values << value
+						end
+					end
+					sheet << hyperlinked_values
+				else
+					sheet << record.values
+				end
 			end
 		end
 

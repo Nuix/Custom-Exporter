@@ -201,6 +201,7 @@ class Xlsx
 			@aspose_worksheet = aspose_worksheet
 			@workbook = workbook
 			@current_row = @aspose_worksheet.getCells.getMaxDataRow + 1
+			@hyperlink_regex = /=HYPERLINK\("([^,]+)","([^\)]+)"\)/
 		end
 
 		def last_row
@@ -212,7 +213,20 @@ class Xlsx
 		end
 
 		def []=(row,col,value)
-			cell = get_cell(row,col).setValue(value)
+			if value.is_a?(String) && value.start_with?("=")
+				if value.start_with?("=HYPERLINK")
+					# Hyperlink formula partially works but doesn't apply
+					# hyper link style, instead have to use special approach
+					captures = value.match(@hyperlink_regex).captures
+					hyperlink_index = @aspose_worksheet.getHyperlinks.add(row,col,1,1,captures[1])
+					cell = get_cell(row,col).setFormula(value)
+				else
+					# Treat as a regular formula
+					cell = get_cell(row,col).setFormula(value)
+				end
+			else
+				cell = get_cell(row,col).setValue(value)
+			end
 		end
 
 		def <<(values)

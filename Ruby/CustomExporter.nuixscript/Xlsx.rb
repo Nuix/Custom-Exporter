@@ -201,7 +201,7 @@ class Xlsx
 			@aspose_worksheet = aspose_worksheet
 			@workbook = workbook
 			@current_row = @aspose_worksheet.getCells.getMaxDataRow + 1
-			@hyperlink_regex = /=HYPERLINK\("([^,]+)","([^\)]+)"\)/
+			@hyperlink_regex = /=HYPERLINK\("([^\"]+)","([^\")]+)"\)/
 		end
 
 		def last_row

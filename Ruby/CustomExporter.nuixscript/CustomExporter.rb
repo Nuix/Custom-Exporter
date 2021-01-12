@@ -70,16 +70,18 @@ main_tab.appendHeader("Note: Only profiles containing 'GUID' are listed.")
 main_tab.appendComboBox("metadata_profile","Metadata Profile",profile_names)
 
 main_tab.appendSeparator("Input Items")
-main_tab.appendCheckBox("include_families","Include Families",false)
-main_tab.appendRadioButton("use_query","Use Query","item_source",true)
 if $current_selected_items.size > 0
 	main_tab.appendRadioButton("use_selected_items","Use Selected Items: #{$current_selected_items.size}","item_source",false)
 end
+
 if production_set_names.size > 0
 	main_tab.appendRadioButton("use_production_set","Use Production Set","item_source",false)
 	main_tab.appendComboBox("source_production_set","Production Set",production_set_names)
 	main_tab.enabledOnlyWhenChecked("source_production_set","use_production_set")
 end
+
+main_tab.appendRadioButton("use_query","Use Query","item_source",true)
+main_tab.appendCheckBox("include_families","Include Families",false)
 main_tab.appendHeader("Item Query")
 main_tab.appendTextArea("source_query","","")
 main_tab.enabledOnlyWhenChecked("source_query","use_query")

@@ -54,6 +54,7 @@ production_set_names = $current_case.getProductionSets.map{|ps|ps.getName}
 # Build Settings Dialog #
 #=======================#
 dialog = TabbedCustomDialog.new("Custom Exporter")
+dialog.setTabPlacementLeft
 dialog.enableStickySettings(File.join(script_directory,"RecentSettings.json"))
 dialog.setHelpFile(File.join(script_directory,"Help.html"))
 dialog.setHelpUrl("https://github.com/Nuix/Custom-Exporter")
@@ -107,19 +108,19 @@ built_in_headers.each do |built_in_header|
 end
 
 # Text Settings Tab
-text_tab = dialog.addTab("text_tab","Text")
+text_tab = dialog.addTab("text_tab","Text Export")
 text_tab.appendCheckBox("export_text","Export Text",true)
 text_tab.appendTextField("text_template","Text Path Template","{export_directory}\\TEXT\\{box_major}\\{box}\\{name}.txt")
 text_tab.enabledOnlyWhenChecked("text_template","export_text")
 
 # PDF settings Tab
-pdf_tab = dialog.addTab("pdf_tab","PDF")
+pdf_tab = dialog.addTab("pdf_tab","PDF Export")
 pdf_tab.appendCheckBox("export_pdf","Export PDFs",true)
 pdf_tab.appendTextField("pdf_template","PDF Path Template","{export_directory}\\PDF\\{box_major}\\{box}\\{name}.pdf")
 pdf_tab.enabledOnlyWhenChecked("pdf_template","export_pdf")
 
 # TIFF settings Tab
-tiff_tab = dialog.addTab("tiff_tab","TIFF")
+tiff_tab = dialog.addTab("tiff_tab","TIFF Export")
 tiff_tab.appendCheckBox("export_tiff","Export TIFFs",true)
 tiff_tab.appendRadioButton("multi_page_tiff","Multi-page","tiff_type_group",true)
 tiff_tab.appendRadioButton("single_page_tiff","Single-page","tiff_type_group",false)
@@ -144,13 +145,72 @@ tiff_tab.enabledOnlyWhenChecked("tiff_template","export_tiff")
 tiff_tab.enabledOnlyWhenChecked("tiff_dpi","export_tiff")
 
 # Native settings Tab
-native_tab = dialog.addTab("native_tab","Natives")
+native_tab = dialog.addTab("native_tab","Natives Export")
 native_tab.appendCheckBox("export_natives","Export Natives",true)
 native_tab.appendTextField("natives_template","Natives Path Template","{export_directory}\\NATIVE\\{box}\\{name}.{extension}")
 native_tab.appendComboBox("natives_email_format","Email Format",["msg","eml","html","mime_html","dxl"])
 native_tab.appendCheckBox("include_attachments","Include Attachments on Emails",true)
 native_tab.enabledOnlyWhenChecked("natives_template","export_natives")
 native_tab.enabledOnlyWhenChecked("natives_email_format","export_natives")
+
+# Were going to be doing numerous licence feature checks
+current_licence = $utilities.getLicence
+
+stamp_location_choices = {
+	"Header Left" => "headerLeft",
+	"Header Center" => "headerCentre",
+	"Header Right" => "headerRight",
+	"Footer Left" => "footerLeft",
+	"Footer Center" => "footerCentre",
+	"Footer Right" => "footerRight",
+}
+
+stamp_types = {
+	"Name" => "name",
+	"GUID" => "guid",
+	"Document Number" => "document_number",
+	"Item ID" => "item_id",
+	"Produced By" => "produced_by",
+	"MD5" => "md5",
+	"SHA1" => "sha1",
+	"SHA256" => "sha256",
+	"Custom" => "custom",
+}
+
+if current_licence.hasFeature("EXPORT_LEGAL")
+	stamp_types["Document ID"] = "document_id"
+	stamp_types["Production Set Name"] = "production_set_name"
+end
+
+font_names = [
+	"Courier New",
+	"Arial",
+	"Times New Roman",
+	"Consolas",
+]
+
+stamping_settings = {}
+if current_licence.hasFeature("PRODUCTION_SET")
+	general_stamping_tab = dialog.addTab("general_stamping_tab","Stamping General")
+	general_stamping_tab.appendCheckBox("header_line","Header Line",false)
+	general_stamping_tab.appendCheckBox("footer_line","Footer Line",false)
+	general_stamping_tab.appendCheckBox("increase_page_size","Increase Page Size",false)
+
+	stamp_location_choices.each do |label,name|
+		stamping_tab = dialog.addTab("#{name}_tab","#{label}")
+		stamping_tab.appendCheckBox("#{name}_stamp","Stamp #{label}",false)
+		stamping_tab.appendComboBox("#{name}_type","Type",stamp_types.keys) do
+			stamping_tab.getControl("#{name}_custom").setEnabled(stamping_tab.getText("#{name}_type") == "Custom")
+		end
+		stamping_tab.appendTextField("#{name}_custom","Custom Value","")
+		stamping_tab.getControl("#{name}_custom").setEnabled(false)
+		stamping_tab.appendComboBox("#{name}_font_family","Font Family",font_names)
+		stamping_tab.setText("#{name}_font_family","Courier New")
+		stamping_tab.appendCheckBox("#{name}_bold","Bold",false)
+		stamping_tab.appendCheckBox("#{name}_italic","Italic",false)
+		stamping_tab.appendSpinner("#{name}_font_size","Font Size",8,1,64,1)
+	end
+end
 
 # Placeholder settings tab
 placeholders_tab = dialog.addTab("placeholders_tab","Placeholders")
@@ -275,6 +335,20 @@ dialog.validateBeforeClosing do |values|
 		message << "\nThis is needed to correlate entries in DAT back to actual items in the case."
 		CommonDialogs.showError(message)
 		next false
+	end
+	
+	# Make sure we are exporting from a production set if we are doing any stamping that requires that
+	if current_licence.hasFeature("EXPORT_LEGAL") && values["use_production_set"] == false
+		needs_prod_set = {
+			"Document ID" => true,
+			"Production Set Name" => true,
+		}
+		stamp_location_choices.each do |label,name|
+			if values["#{name}_stamp"] && needs_prod_set[values["#{name}_type"]]
+				CommonDialogs.showWarning("#{label} cannot use '#{values["#{name}_type"]}' unless item source is a production set.")
+				next false
+			end
+		end
 	end
 
 	# If no validations failed we yield true to signal we're good to proceed
@@ -604,9 +678,55 @@ if dialog.getDialogResult == true
 			end
 		end
 
-		#Can only call this if the the licence has the feature "PRODUCTION_SET"
-		if $utilities.getLicence.hasFeature("PRODUCTION_SET")
+		# Setup stamping if licence allows and user enabled it
+		if current_licence.hasFeature("PRODUCTION_SET")
 			exporter.setNumberingOptions({"createProductionSet" => false})
+
+			if stamp_location_choices.values.any?{|name| values["#{name}_stamp"] == true}
+				stamping = {
+					"headerLine" => values["header_line"],
+					"footerLine" => values["footer_line"],
+					"increasePageSize" => values["increase_page_size"],
+				}
+
+				pd.logMessage("Stamping General")
+				pd.logMessage("\tHeader Line: #{values["header_line"]}")
+				pd.logMessage("\tFooter Line: #{values["footer_line"]}")
+				pd.logMessage("\tIncrease Page Size: #{values["increase_page_size"]}")
+
+				stamp_location_choices.each do |label,name|
+					next if values["#{name}_stamp"] == false
+					pd.logMessage("Configuring #{label} Stamping")
+					style_info = []
+					if values["#{name}_bold"] == true
+						style_info << "bold"
+					end
+					if values["#{name}_italic"] == true
+						style_info << "italic"
+					end
+					stamping[name] = {
+						"type" => stamp_types[values["#{name}_type"]],
+						"font" => {
+							"family" => values["#{name}_font_family"],
+							"style" => style_info,
+							"size" => values["#{name}_font_size"],
+						}
+					}
+
+					pd.logMessage("\tType: #{values["#{name}_type"]}")
+					if stamp_types[values["#{name}_type"]] == "custom"
+						stamping[name]["customText"] = values["#{name}_custom"]
+						pd.logMessage("\tCustom Text: #{values["#{name}_custom"]}")
+					end
+					pd.logMessage("\tFont Family: #{values["#{name}_font_family"]}")
+					pd.logMessage("\tFont Size: #{values["#{name}_font_size"]}")
+					pd.logMessage("\tBold: #{values["#{name}_bold"]}")
+					pd.logMessage("\tItalic: #{values["#{name}_italic"]}")
+				end
+				exporter.setStampingOptions(stamping)
+			end
+		else
+			pd.logMessage("Current licence does not have feature 'PRODUCTION_SET' so no stamping will be configured")
 		end
 
 		# We are ready to begin exporting!

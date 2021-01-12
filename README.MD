@@ -2,7 +2,7 @@
 Custom Exporter
 =============
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) ![This script was last tested in Nuix 8.6](https://img.shields.io/badge/Script%20Tested%20in%20Nuix-8.6-green.svg)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) ![This script was last tested in Nuix 8.8](https://img.shields.io/badge/Script%20Tested%20in%20Nuix-8.8-green.svg)
 
 View the GitHub project [here](https://github.com/Nuix/Custom-Exporter) or download the latest release [here](https://github.com/Nuix/Custom-Exporter/releases).
 
@@ -37,7 +37,7 @@ Once you have a copy of Nx.jar, make sure to include it in the same directory as
 # License
 
 ```
-Copyright 2020 Nuix
+Copyright 2021 Nuix
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

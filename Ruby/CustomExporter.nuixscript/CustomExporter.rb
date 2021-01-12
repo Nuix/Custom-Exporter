@@ -175,6 +175,7 @@ stamp_types = {
 	"SHA1" => "sha1",
 	"SHA256" => "sha256",
 	"Custom" => "custom",
+	"Metadata Item" => "metadata",
 }
 
 if current_licence.hasFeature("EXPORT_LEGAL")
@@ -189,6 +190,10 @@ font_names = [
 	"Consolas",
 ]
 
+metadata_item_choices = $current_case.getMetadataItems.map do |metadata_item|
+	next Choice.new(metadata_item,"#{metadata_item.getType} : #{metadata_item.getName}")
+end
+
 stamping_settings = {}
 if current_licence.hasFeature("PRODUCTION_SET")
 	general_stamping_tab = dialog.addTab("general_stamping_tab","Stamping General")
@@ -199,16 +204,21 @@ if current_licence.hasFeature("PRODUCTION_SET")
 	stamp_location_choices.each do |label,name|
 		stamping_tab = dialog.addTab("#{name}_tab","#{label}")
 		stamping_tab.appendCheckBox("#{name}_stamp","Stamp #{label}",false)
-		stamping_tab.appendComboBox("#{name}_type","Type",stamp_types.keys) do
-			stamping_tab.getControl("#{name}_custom").setEnabled(stamping_tab.getText("#{name}_type") == "Custom")
-		end
-		stamping_tab.appendTextField("#{name}_custom","Custom Value","")
-		stamping_tab.getControl("#{name}_custom").setEnabled(false)
 		stamping_tab.appendComboBox("#{name}_font_family","Font Family",font_names)
 		stamping_tab.setText("#{name}_font_family","Courier New")
 		stamping_tab.appendCheckBox("#{name}_bold","Bold",false)
 		stamping_tab.appendCheckBox("#{name}_italic","Italic",false)
 		stamping_tab.appendSpinner("#{name}_font_size","Font Size",8,1,64,1)
+		stamping_tab.appendComboBox("#{name}_type","Type",stamp_types.keys) do
+			stamping_tab.getControl("#{name}_custom").setEnabled(stamping_tab.getText("#{name}_type") == "Custom")
+			stamping_tab.getControl("#{name}_metadata_item").setEnabled(stamping_tab.getText("#{name}_type") == "Metadata Item")
+		end
+		stamping_tab.appendTextField("#{name}_custom","Custom Value","")
+		stamping_tab.appendChoiceTable("#{name}_metadata_item","Metadata Item",metadata_item_choices)
+		# Makes the normally multi choice table only allow selection of a single choice
+		stamping_tab.getControl("#{name}_metadata_item").getTableModel.setSingleSelectMode(true)
+		stamping_tab.getControl("#{name}_custom").setEnabled(false)
+		stamping_tab.getControl("#{name}_metadata_item").setEnabled(false)
 	end
 end
 
@@ -714,10 +724,18 @@ if dialog.getDialogResult == true
 					}
 
 					pd.logMessage("\tType: #{values["#{name}_type"]}")
+
 					if stamp_types[values["#{name}_type"]] == "custom"
 						stamping[name]["customText"] = values["#{name}_custom"]
 						pd.logMessage("\tCustom Text: #{values["#{name}_custom"]}")
 					end
+
+					if stamp_types[values["#{name}_type"]] == "metadata"
+						metadata_item = values["#{name}_metadata_item"].first
+						stamping[name]["metadataItem"] = metadata_item
+						pd.logMessage("\tMetadata Item: #{metadata_item.getType} : #{metadata_item.getName}")
+					end
+
 					pd.logMessage("\tFont Family: #{values["#{name}_font_family"]}")
 					pd.logMessage("\tFont Size: #{values["#{name}_font_size"]}")
 					pd.logMessage("\tBold: #{values["#{name}_bold"]}")

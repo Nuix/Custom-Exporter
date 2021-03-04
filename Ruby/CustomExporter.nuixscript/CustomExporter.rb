@@ -353,12 +353,15 @@ dialog.validateBeforeClosing do |values|
 			"Document ID" => true,
 			"Production Set Name" => true,
 		}
+		invalid_choice = false
 		stamp_location_choices.each do |label,name|
 			if values["#{name}_stamp"] && needs_prod_set[values["#{name}_type"]]
 				CommonDialogs.showWarning("#{label} cannot use '#{values["#{name}_type"]}' unless item source is a production set.")
-				next false
+				invalid_choice = true
+				break
 			end
 		end
+		next false if invalid_choice
 	end
 
 	# If no validations failed we yield true to signal we're good to proceed
@@ -520,18 +523,22 @@ if dialog.getDialogResult == true
 		source_production_set = nil
 		if values["use_selected_items"]
 			items = $current_selected_items.to_a
+			pd.logMessage("Selected items yielded #{items.size} items")
 		elsif values["use_query"]
 			pd.logMessage("Searching: #{values["source_query"]}")
 			items = $current_case.search(values["source_query"])
+			pd.logMessage("Search yielded #{items.size} items")
 		elsif values["use_production_set"]
 			source_production_set = $current_case.getProductionSets.select{|ps|ps.getName == values["source_production_set"]}.first
 			pd.logMessage("Getting items from production set: #{values["source_production_set"]}")
 			items = source_production_set.getItems
+			pd.logMessage("Production set yielded #{items.size} items")
 		end
 
 		if values["include_families"]
 			pd.logMessage("Including family items...")
 			items = iutil.findFamilies(items)
+			pd.logMessage("#{items.size} items after including families")
 		end
 
 		header_renames = {}
@@ -541,12 +548,19 @@ if dialog.getDialogResult == true
 
 		pd.logMessage("Removing any excluded items...")
 		items = items.reject{|i|i.isExcluded}
+		pd.logMessage("#{items.size} items after removing excluded items")
 
 		# Remove evidence items
 		pd.logMessage("Removing any evidence container items...")
 		items = items.reject{|i|i.getType.getName == "application/vnd.nuix-evidence"}
+		pd.logMessage("#{items.size} items after removing evidence container items")
 
-		pd.logMessage("Input Items: #{items.size}")
+		pd.logMessage("Items to Export: #{items.size}")
+
+		if items.size < 1
+			pd.setMainStatusAndLogIt("No input items to work with!")
+			next
+		end
 
 		# Extract settings dialog values into variables for convenience later
 		export_text = values["export_text"]

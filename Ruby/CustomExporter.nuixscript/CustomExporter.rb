@@ -929,10 +929,14 @@ if dialog.getDialogResult == true
 					extension = natives_email_format
 				end
 			else
-				extension = current_item.getCorrectedExtension
-				extension ||= current_item.getOriginalExtension
-				extension ||= current_item.getType.getPreferredExtension
-				extension ||= "BIN"
+				ext_choices = [
+					(File.extname(record["ITEMPATH"]) || "").delete('.'),
+					current_item.getCorrectedExtension,
+					current_item.getOriginalExtension,
+					current_item.getType.getPreferredExtension,
+					"BIN"
+				]
+				extension = ext_choices.select{|ext| !ext.nil? && !ext.strip.empty?}.first
 			end
 			resolver.set("extension",extension)
 

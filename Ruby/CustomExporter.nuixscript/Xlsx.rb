@@ -217,9 +217,14 @@ class Xlsx
 				if value.start_with?("=HYPERLINK")
 					# Hyperlink formula partially works but doesn't apply
 					# hyper link style, instead have to use special approach
-					captures = value.match(@hyperlink_regex).captures
-					hyperlink_index = @aspose_worksheet.getHyperlinks.add(row,col,1,1,captures[1])
-					cell = get_cell(row,col).setFormula(value)
+					match_data = value.match(@hyperlink_regex)
+					if !match_data.nil?
+						captures = match_data.captures
+						hyperlink_index = @aspose_worksheet.getHyperlinks.add(row,col,1,1,captures[1])
+						cell = get_cell(row,col).setFormula(value)
+					else
+						cell = get_cell(row,col).setValue(value)
+					end
 				else
 					# Treat as a regular formula
 					cell = get_cell(row,col).setFormula(value)

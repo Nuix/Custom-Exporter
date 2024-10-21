@@ -1016,7 +1016,7 @@ if dialog.getDialogResult == true
 			# Only calculate path names if we really need to since it could cause a performance hit
 			if generate_filtered_path || (use_custom_placeholders && (resolver.get("custom_1") =~ fp_regex || resolver.get("custom_2") =~ fp_regex ||
 				resolver.get("custom_3") =~ fp_regex || resolver.get("custom_4") =~ fp_regex || resolver.get("custom_5") =~ fp_regex))
-				filtered_path_names = current_item_path
+				filtered_path_names = current_item.getPath
 				filtered_path_names = filtered_path_names.reject{|path_item| filtered_path_mime_types[path_item.getType.getName]}
 				filtered_path_names = filtered_path_names.map{|path_item|path_item.getLocalisedName}
 				resolver.set("filtered_item_path",filtered_path_names.map{|n|n.gsub(/[\\\/\.\n\r\t]/,"_")}.join("\\"))
@@ -1118,7 +1118,8 @@ if dialog.getDialogResult == true
 					# =HYPERLINK("relative_file_path","display_value")
 					hyperlinked_values = []
 					record.each do |header,value|
-						if hyperlinked_columns[header] == true
+						if hyperlinked_columns[header] == true && !value.nil? && !value.strip.empty?
+							# puts "DEBUG:hyperlink_to_products:HEADER=#{header}:=HYPERLINK(\"#{value}\",\"#{value}\")"
 							hyperlinked_values << "=HYPERLINK(\"#{value}\",\"#{value}\")"
 						else
 							hyperlinked_values << value
